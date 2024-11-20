@@ -1,0 +1,5 @@
+build/
+install/
+log/
+.vscode/
+192.168.2-metadata.json

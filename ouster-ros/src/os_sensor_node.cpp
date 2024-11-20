@@ -83,6 +83,14 @@ void OusterSensor::declare_parameters() {
     declare_parameter("dormant_period_between_reconnects", 1.0);
     declare_parameter("max_failed_reconnect_attempts", INT_MAX);
     declare_parameter("auto_start", false);
+    
+    // Custom ROS params for hardware synchronization with cameras
+    declare_parameter("multipurpose_io_mode", "OFF");
+    declare_parameter("sync_pulse_out_pulse_width", 10);
+    declare_parameter("sync_pulse_out_frequency", 1);
+    declare_parameter("sync_pulse_out_angle", 360);
+    declare_parameter("phase_lock_enable", false);
+    declare_parameter("phase_lock_offset", 0);
 }
 
 bool OusterSensor::start() {
@@ -568,6 +576,99 @@ sensor::sensor_config OusterSensor::parse_config_from_ros_parameters() {
     }
 
     config.azimuth_window = {azimuth_window_start, azimuth_window_end};
+    
+    // Processing custom params
+    
+    auto multipurpose_io_mode_arg = get_parameter("multipurpose_io_mode").as_string();
+    auto sync_pulse_out_pulse_width = get_parameter("sync_pulse_out_pulse_width").as_int();
+    auto sync_pulse_out_frequency = get_parameter("sync_pulse_out_frequency").as_int();
+    auto sync_pulse_out_angle = get_parameter("sync_pulse_out_angle").as_int();
+    auto phase_lock_enable = get_parameter("phase_lock_enable").as_bool();
+    auto phase_lock_offset = get_parameter("phase_lock_offset").as_int();
+
+    // set multipurpose IO mode from param
+    std::optional<sensor::MultipurposeIOMode> multipurpose_io_mode = sensor::MULTIPURPOSE_OFF;
+    if (is_arg_set(multipurpose_io_mode_arg)) {
+        multipurpose_io_mode = sensor::multipurpose_io_mode_of_string(multipurpose_io_mode_arg);
+        if (!multipurpose_io_mode) {
+            auto error_msg = "Invalid multipurpose IO mode: " + multipurpose_io_mode_arg;
+            RCLCPP_ERROR_STREAM(get_logger(), error_msg);
+            throw std::runtime_error(error_msg);
+        }
+    }
+
+    config.multipurpose_io_mode = multipurpose_io_mode;
+
+
+    if (sync_pulse_out_pulse_width < 0 || sync_pulse_out_pulse_width > 999) {
+        auto error_msg =
+            "Invalid sync pulse out width! value should be in the range "
+            "[0, 999].";
+        RCLCPP_ERROR_STREAM(get_logger(), error_msg);
+        throw std::runtime_error(error_msg);
+    }
+
+    if (sync_pulse_out_pulse_width == 0) {
+        RCLCPP_WARN_STREAM(
+            get_logger(), 
+            "sync pulse out pulse width set to zero, the client will assign a default "
+            "sync pulse out pulse width!");
+    } else {
+        config.sync_pulse_out_pulse_width = sync_pulse_out_pulse_width;
+    }
+
+    if (sync_pulse_out_frequency < 1 || sync_pulse_out_frequency > 999) {
+        auto error_msg =
+            "Invalid sync pulse out frequency! value should be in the range "
+            "[1, 999].";
+        RCLCPP_ERROR_STREAM(get_logger(), error_msg);
+        throw std::runtime_error(error_msg);
+    }
+
+    if (sync_pulse_out_frequency == 1) {
+        RCLCPP_WARN_STREAM(
+            get_logger(), 
+            "sync pulse out pulse frequency set to 1, the client will assign a default "
+            "sync pulse out pulse frequency!");
+    } else {
+        config.sync_pulse_out_frequency = sync_pulse_out_frequency;
+    }
+
+    if (sync_pulse_out_angle < 0 || sync_pulse_out_angle > 360) {
+        auto error_msg =
+            "Invalid sync pulse out angle! value should be in the range "
+            "[0, 360].";
+        RCLCPP_ERROR_STREAM(get_logger(), error_msg);
+        throw std::runtime_error(error_msg);
+    }
+
+    if (sync_pulse_out_angle == 0) {
+        RCLCPP_WARN_STREAM(
+            get_logger(),
+            "sync pulse out angle set to zero, the client will assign a default "
+            "sync pulse out angle!");
+    } else {
+        config.sync_pulse_out_angle = sync_pulse_out_angle;
+    }
+
+    config.phase_lock_enable = phase_lock_enable;
+
+    if (phase_lock_offset < 0 || phase_lock_offset > 360000) {
+        auto error_msg =
+            "Invalid phase lock offset! value should be in the range "
+            "[0, 360000].";
+        RCLCPP_ERROR_STREAM(get_logger(), error_msg);
+        throw std::runtime_error(error_msg);
+    }
+
+    if (phase_lock_offset == 0) {
+        RCLCPP_WARN_STREAM(
+            get_logger(),
+            "phase lock offset set to zero, the client will assign a default "
+            "phase lock offset!");
+    } else {
+        config.phase_lock_offset = phase_lock_offset;
+    }
 
     return config;
 }

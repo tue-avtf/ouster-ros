@@ -2,10 +2,10 @@ ouster/os_driver:
   ros__parameters:
     # sensor_hostname[required]: hostname or IP address of the sensor (IP4 or
     # IP6).
-    sensor_hostname: ''
+    sensor_hostname: '192.168.2.221'
     # udp_dest[optional]: hostname or multicast group IP where the sensor will
     # send UDP data packets.
-    udp_dest: ''
+    udp_dest: '192.168.2.200'
     # mtp_dest[optional]: hostname IP address for receiving data packets via
     # multicast, by default it is INADDR_ANY, so packets will be received on
     # first available network interface.
@@ -16,7 +16,7 @@ ouster/os_driver:
     # lidar_mode[optional]: resolution and rate; possible values: { 512x10,
     # 512x20, 1024x10, 1024x20, 2048x10, 4096x5 }. Leave empty to remain on
     # current the lidar mode.
-    lidar_mode: ''
+    lidar_mode: '1024x10'
     # timestamp_mode[optional]: method used to timestamp measurements; possible
     # values:
     # - TIME_FROM_INTERNAL_OSC
@@ -25,7 +25,7 @@ ouster/os_driver:
     # - TIME_FROM_ROS_TIME: This option uses the time of reception of first
     #                       packet of a LidarScan as the timestamp of the IMU,
     #                       PointCloud2 and LaserScan messages.
-    timestamp_mode: ''
+    timestamp_mode: 'TIME_FROM_PTP_1588'
     # ptp_utc_tai_offset[optional]: UTC/TAI offset in seconds to apply when
     # TIME_FROM_PTP_1588 timestamp mode is used.
     ptp_utc_tai_offset: -37.0
@@ -35,7 +35,7 @@ ouster/os_driver:
     # - RNG15_RFL8_NIR8
     # - RNG19_RFL8_SIG16_NIR16_DUAL
     # - FUSA_RNG15_RFL8_NIR8_DUAL
-    udp_profile_lidar: ''
+    udp_profile_lidar: 'RNG19_RFL8_SIG16_NIR16'
     # metadata[optional]: path to save metadata file to, if left empty a file
     # with the sensor hostname or ip will be crearted in ~/.ros folder.
     metadata: ''
@@ -115,3 +115,38 @@ ouster/os_driver:
     min_range: 0.0
     # max_range[optional]: maximum lidar range to consider (meters).
     max_range: 1000.0
+    
+    ###############################################################################
+    # These parameters are added to maintain hardware synchronization with cameras
+    ###############################################################################
+
+    # How to produce signal at lidar's multipurpose IO pin
+    # Possible values:
+    # OFF: Do not output a SYNC_PULSE_OUT signal
+    # INPUT_NMEA_UART: Reconfigures the MULTIPURPOSE_IO port as an input
+    # OUTPUT_FROM_INTERNAL_OSC: Output a SYNC_PULSE_OUT signal synchronized with the internal clock
+    # OUTPUT_FROM_SYNC_PULSE_IN: Output a SYNC_PULSE_OUT signal synchronized with a SYNC_PULSE_IN provided to the unit
+    # OUTPUT_FROM_PTP_1588: Output a SYNC_PULSE_OUT signal synchronized with an external PTP IEEE 1588 master
+    # OUTPUT_FROM_ENCODER_ANGLE: Output a SYNC_PULSE_OUT signal with a user defined rate in an integer number of degrees
+    multipurpose_io_mode: 'OUTPUT_FROM_PTP_1588' # Option 1: Use PTP
+    #multipurpose_io_mode: 'OUTPUT_FROM_ENCODER_ANGLE' # Option 2: Use rotation angle
+    
+    # the output SYNC_PULSE_OUT pulse width in ms
+    sync_pulse_out_pulse_width: 10
+
+    # Output rate of sync pulse out in Hz.
+    # Used when the sensor’s multipurpose_io_mode is set to
+    # OUTPUT_FROM_INTERNAL_OSC, OUTPUT_FROM_SYNC_PULSE_IN, or OUTPUT_FROM_PTP_1588
+    sync_pulse_out_frequency: 10
+
+    # the angle in terms of degrees that the sensor traverses between each SYNC_PULSE_OUT pulse.
+    # E.g. value of 180 means a sync pulse is sent out every 180° for a total of two pulses per revolution
+    # and angular frequency of 20 Hz if the sensor is 1024x10 Hz lidar mode.
+    sync_pulse_out_angle: 180
+
+    # Whether phase locking is enabled
+    phase_lock_enable: true
+
+    # Angle that sensors are locked to in millidegrees
+    phase_lock_offset: 180000
+    

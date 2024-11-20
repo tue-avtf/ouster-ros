@@ -86,7 +86,10 @@ class OusterCloud : public OusterProcessingNodeBase {
         bool use_system_default_qos =
             get_parameter("use_system_default_qos").as_bool();
         rclcpp::QoS system_default_qos = rclcpp::SystemDefaultsQoS();
-        rclcpp::QoS sensor_data_qos = rclcpp::SensorDataQoS();
+        
+        // This helps to avoid losing messages when writing to ROS bag
+        rclcpp::QoS sensor_data_qos = rclcpp::SystemDefaultsQoS().reliable().keep_last(20).transient_local();
+        
         auto selected_qos =
             use_system_default_qos ? system_default_qos : sensor_data_qos;
 

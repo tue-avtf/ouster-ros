@@ -65,7 +65,10 @@ class OusterDriver : public OusterSensor {
         bool use_system_default_qos =
             get_parameter("use_system_default_qos").as_bool();
         rclcpp::QoS system_default_qos = rclcpp::SystemDefaultsQoS();
-        rclcpp::QoS sensor_data_qos = rclcpp::SensorDataQoS();
+        
+        // This helps to avoid losing messages when writing to ROS bag
+        rclcpp::QoS sensor_data_qos = rclcpp::SystemDefaultsQoS().reliable().keep_last(20).transient_local();
+        
         auto selected_qos =
             use_system_default_qos ? system_default_qos : sensor_data_qos;
 
@@ -114,6 +117,10 @@ class OusterDriver : public OusterSensor {
                     tf_bcast.apply_lidar_to_sensor_transform(),
                     organized, destagger, min_range, max_range, rows_step,
                     [this](PointCloudProcessor_OutputType msgs) {
+                    
+                    	// Helps to track whether the driver is currently publishing or not
+                    	RCLCPP_DEBUG_STREAM(get_logger(), "Publishing " << msgs.size() << " point clouds");
+                    
                         for (size_t i = 0; i < msgs.size(); ++i)
                             lidar_pubs[i]->publish(*msgs[i]);
                     }
